@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Inheritance | Digital Will DApp</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-logo">Digital Will DApp</div>
+    <input type="checkbox" id="menu-toggle" class="menu-toggle">
+    <label for="menu-toggle" class="hamburger">☰</label>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="create-will.html">Create Will</a></li>
+      <li><a href="my-wills.html">My Wills</a></li>
+      <li><a href="execution-panel.html">Execution Panel</a></li>
+    </ul>
+  </nav>
+
+  <section class="form-section">
+    <div class="form-container">
+      <h2>Verify Inheritance Eligibility</h2>
+      <form id="verify-form">
+        <label for="will-id">Will ID</label>
+        <input type="text" id="will-id" placeholder="e.g., 123456" required>
+
+        <label for="beneficiary-address">Beneficiary Wallet Address</label>
+        <input type="text" id="beneficiary-address" placeholder="e.g., 0x123..." required>
+
+        <label for="birthYear">Enter Beneficiary's Birth Year</label>
+        <input type="number" id="birthYear" placeholder="e.g., 2005" required>
+
+        <label for="document">Upload Birth Certificate</label>
+        <input type="file" id="document" accept="image/*">
+
+        <button type="submit" class="submit-button">Verify Inheritance</button>
+      </form>
+
+      <div id="result" style="margin-top: 1rem; font-weight: 600;"></div>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const CONTRACT_ADDRESS = "0xdeEd7Ec0Da23801Cac5E7b1F05f881Fb0B5cecCC";
+
+    const ABI = [
+      {
+        "inputs": [{ "internalType": "uint256", "name": "_willId", "type": "uint256" }],
+        "name": "getWillById",
+        "outputs": [{
+          "components": [
+            { "internalType": "uint256", "name": "id", "type": "uint256" },
+            { "internalType": "address", "name": "testator", "type": "address" },
+            { "internalType": "address", "name": "beneficiary", "type": "address" },
+            { "internalType": "string", "name": "beneficiaryNameHash", "type": "string" },
+            { "internalType": "string", "name": "assetInfoHash", "type": "string" },
+            { "internalType": "string", "name": "ageConditionHash", "type": "string" },
+            { "internalType": "bool", "name": "isRevoked", "type": "bool" }
+          ],
+          "internalType": "struct WillCreation.Will",
+          "name": "",
+          "type": "tuple"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ];
+
+    async function sha3(str) {
+      return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(str));
+    }
+
+    async function findMinimumEligibleAge(hashedAge) {
+      for (let age = 0; age <= 130; age++) {
+        const hash = await sha3(String(age));
+        if (hash === hashedAge) return age;
+      }
+      return null;
+    }
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      await provider.send("eth_requestAccounts", []);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+      document.getElementById("verify-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const willId = document.getElementById("will-id").value.trim();
+        const inputAddress = document.getElementById("beneficiary-address").value.trim();
+        const inputYear = parseInt(document.getElementById("birthYear").value.trim());
+        const currentYear = new Date().getFullYear();
+        const inputAge = currentYear - inputYear;
+
+        try {
+          const will = await contract.getWillById(willId);
+
+          if (will.isRevoked) {
+            document.getElementById("result").innerText = "❌ This will has been revoked.";
+            return;
+          }
+
+          const addressMatch = inputAddress.toLowerCase() === will.beneficiary.toLowerCase();
+
+          const minEligibleAge = await findMinimumEligibleAge(will.ageConditionHash);
+
+          if (!addressMatch) {
+            document.getElementById("result").innerText = "❌ Address does not match the beneficiary.";
+          } else if (minEligibleAge === null) {
+            document.getElementById("result").innerText = "❌ Unable to decode age condition.";
+          } else if (inputAge >= minEligibleAge) {
+            document.getElementById("result").innerText = "✅ You are eligible to receive the inheritance.";
+          } else {
+            document.getElementById("result").innerText = `🕒 Asset release delayed. Minimum age requirement is ${minEligibleAge}. Wait until it's met.`;
+          }
+
+        } catch (err) {
+          console.error("Verification failed:", err);
+          document.getElementById("result").innerText = "❌ Could not verify inheritance eligibility.";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

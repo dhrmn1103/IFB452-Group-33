@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Wills | Digital Will DApp</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-logo">Digital Will DApp</div>
+    <input type="checkbox" id="menu-toggle" class="menu-toggle" />
+    <label for="menu-toggle" class="hamburger">☰</label>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="create-will.html">Create Will</a></li>
+      <li><a href="execution-panel.html">Execution Panel</a></li>
+      <li><a href="verify-inheritance.html">Verify Inheritance</a></li>
+    </ul>
+  </nav>
+
+  <!-- My Wills Section -->
+  <section class="form-section">
+    <div class="form-container">
+      <h2>My Wills</h2>
+      <p>Here is a list of your registered wills on the blockchain:</p>
+      <div class="will-list" id="will-list">
+        <!-- Will cards will be injected here -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const creationContractAddress = "0xdeEd7Ec0Da23801Cac5E7b1F05f881Fb0B5cecCC"; // ✅ Updated creation
+    const executionContractAddress = "0x768b4496FA920c47b1C53C9fe2572AC29adF337D"; // ✅ Updated execution
+
+    const creationABI = [
+      {
+        "inputs": [],
+        "name": "getMyWills",
+        "outputs": [
+          {
+            "components": [
+              { "internalType": "uint256", "name": "id", "type": "uint256" },
+              { "internalType": "address", "name": "testator", "type": "address" },
+              { "internalType": "address", "name": "beneficiary", "type": "address" },
+              { "internalType": "string", "name": "beneficiaryNameHash", "type": "string" },
+              { "internalType": "string", "name": "assetInfoHash", "type": "string" },
+              { "internalType": "string", "name": "ageConditionHash", "type": "string" },
+              { "internalType": "bool", "name": "isRevoked", "type": "bool" }
+            ],
+            "internalType": "struct WillCreation.Will[]",
+            "name": "",
+            "type": "tuple[]"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{ "internalType": "uint256", "name": "_willId", "type": "uint256" }],
+        "name": "revokeWill",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
+
+    const executionABI = [
+      {
+        "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "name": "executed",
+        "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ];
+
+    let signer, creationContract, executionContract;
+
+    async function loadWills() {
+      try {
+        if (!window.ethereum) {
+          alert("❌ MetaMask not found. Please install it to continue.");
+          return;
+        }
+
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        creationContract = new ethers.Contract(creationContractAddress, creationABI, signer);
+        executionContract = new ethers.Contract(executionContractAddress, executionABI, signer);
+
+        const wills = await creationContract.getMyWills();
+        const container = document.getElementById("will-list");
+        container.innerHTML = "";
+
+        if (wills.length === 0) {
+          container.innerHTML = "<p>No wills found for this address.</p>";
+          return;
+        }
+
+        for (const will of wills) {
+          const executed = await executionContract.executed(will.id);
+
+          const card = document.createElement("div");
+          card.className = "will-card";
+          card.innerHTML = `
+            <h3>Will ID: ${will.id}</h3>
+            <p><strong>Beneficiary Address:</strong> ${will.beneficiary}</p>
+            <p><strong>Beneficiary Name Hash:</strong> ${will.beneficiaryNameHash}</p>
+            <p><strong>Asset Info Hash:</strong> ${will.assetInfoHash}</p>
+            <p><strong>Age Condition Hash:</strong> ${will.ageConditionHash}</p>
+            <p><strong>Status:</strong> 
+              ${will.isRevoked 
+                ? "Revoked ❌" 
+                : executed 
+                  ? "Executed 🏁" 
+                  : "Active ✅"
+              }
+            </p>
+            ${!will.isRevoked && !executed 
+              ? `<button class="submit-button" onclick="revokeWill(${will.id})">Revoke Will</button>` 
+              : ""
+            }
+          `;
+          container.appendChild(card);
+        }
+
+      } catch (err) {
+        console.error("Error fetching wills:", err);
+        document.getElementById("will-list").innerHTML = "<p>❌ Failed to load wills. Check the console.</p>";
+      }
+    }
+
+    async function revokeWill(willId) {
+      try {
+        const tx = await creationContract.revokeWill(willId);
+        await tx.wait();
+        alert(`✅ Will ID ${willId} has been revoked.`);
+        loadWills();
+      } catch (err) {
+        console.error("Failed to revoke will:", err);
+        alert("❌ Transaction failed. See console for error.");
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", loadWills);
+  </script>
+</body>
+</html>

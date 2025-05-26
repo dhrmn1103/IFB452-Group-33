@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Execution Panel | Digital Will DApp</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .form-container:not(:last-child) {
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-logo">Digital Will DApp</div>
+    <input type="checkbox" id="menu-toggle" class="menu-toggle">
+    <label for="menu-toggle" class="hamburger">☰</label>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="create-will.html">Create Will</a></li>
+      <li><a href="my-wills.html">My Wills</a></li>
+      <li><a href="verify-inheritance.html">Verify Inheritance</a></li>
+    </ul>
+  </nav>
+
+  <!-- Execution Panel Section -->
+  <section class="form-section">
+    <div class="form-container">
+      <h2>Multi-Signature Authorization</h2>
+      <form id="approval-form">
+        <label for="will-id-approval">Will ID</label>
+        <input type="number" id="will-id-approval" placeholder="Enter Will ID" required>
+
+        <label for="certificate">Upload Death Certificate</label>
+        <input type="file" id="certificate" required>
+
+        <label for="legal-authority-address">Legal Authority Address</label>
+        <input type="text" id="legal-authority-address" placeholder="0xABC..." required>
+
+        <label for="legal-authority-type">Type of Legal Authority</label>
+        <input type="text" id="legal-authority-type" placeholder="e.g., Lawyer, Executor" required>
+
+        <button type="submit" class="submit-button">Approve Will Execution</button>
+      </form>
+    </div>
+
+    <div class="form-container">
+      <h2>Will Execution</h2>
+      <form id="execution-form">
+        <label for="will-id-execution">Will ID</label>
+        <input type="number" id="will-id-execution" placeholder="Enter Will ID" required>
+
+        <label for="executor-address">Executor Address</label>
+        <input type="text" id="executor-address" placeholder="0x123..." required>
+
+        <button type="submit" class="submit-button">Trigger Execution</button>
+      </form>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const executionAddress = "0x768b4496FA920c47b1C53C9fe2572AC29adF337D";
+    const creationAddress = "0xdeEd7Ec0Da23801Cac5E7b1F05f881Fb0B5cecCC";
+
+    const executionABI = [
+      {
+        "inputs": [
+          { "internalType": "uint256", "name": "willId", "type": "uint256" },
+          { "internalType": "string", "name": "deathCertHash", "type": "string" }
+        ],
+        "name": "submitDeathCertificate",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          { "internalType": "uint256", "name": "willId", "type": "uint256" }
+        ],
+        "name": "executeWill",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          { "internalType": "uint256", "name": "", "type": "uint256" }
+        ],
+        "name": "executed",
+        "outputs": [
+          { "internalType": "bool", "name": "", "type": "bool" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ];
+
+    const creationABI = [
+      {
+        "inputs": [],
+        "name": "getMyWills",
+        "outputs": [
+          {
+            "components": [
+              { "internalType": "uint256", "name": "id", "type": "uint256" },
+              { "internalType": "address", "name": "testator", "type": "address" },
+              { "internalType": "address", "name": "beneficiary", "type": "address" },
+              { "internalType": "string", "name": "beneficiaryNameHash", "type": "string" },
+              { "internalType": "string", "name": "assetInfoHash", "type": "string" },
+              { "internalType": "string", "name": "ageConditionHash", "type": "string" },
+              { "internalType": "bool", "name": "isRevoked", "type": "bool" }
+            ],
+            "internalType": "struct WillCreation.Will[]",
+            "name": "",
+            "type": "tuple[]"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ];
+
+    let executionContract, creationContract;
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      await provider.send("eth_requestAccounts", []);
+      const signer = provider.getSigner();
+
+      executionContract = new ethers.Contract(executionAddress, executionABI, signer);
+      creationContract = new ethers.Contract(creationAddress, creationABI, signer);
+
+      document.getElementById("approval-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const willId = document.getElementById("will-id-approval").value;
+        const deathCertHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("death-cert"));
+
+        try {
+          const tx = await executionContract.submitDeathCertificate(willId, deathCertHash);
+          await tx.wait();
+          alert("✅ Death certificate submitted.");
+        } catch (err) {
+          console.error(err);
+          alert("❌ Submission failed.");
+        }
+      });
+
+      document.getElementById("execution-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const willId = document.getElementById("will-id-execution").value;
+
+        try {
+          const wills = await creationContract.getMyWills();
+          const will = wills.find(w => w.id.toString() === willId);
+          if (!will) return alert("❌ Will not found.");
+          if (will.isRevoked) return alert("❌ Will is revoked");
+
+          const alreadyExecuted = await executionContract.executed(willId);
+          if (alreadyExecuted) return alert("❌ Will already executed");
+
+          const tx = await executionContract.executeWill(willId);
+          await tx.wait();
+          alert("✅ Will executed successfully");
+        } catch (err) {
+          console.error(err);
+          alert("❌ Execution failed.");
+        }
+      });
+    });
+  </script>
+</body>
+</html>
