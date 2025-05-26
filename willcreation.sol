@@ -15,7 +15,7 @@ contract WillCreation {
 
     mapping(address => Will[]) private willsByTestator;
     mapping(uint => address) private willIdToOwner;
-    mapping(uint => bool) private willExists;  // ✅ Track if a willId exists
+    mapping(uint => bool) private willExists;  
 
     uint private nextWillId = 1;
 
@@ -44,7 +44,7 @@ contract WillCreation {
 
         willsByTestator[msg.sender].push(newWill);
         willIdToOwner[nextWillId] = msg.sender;
-        willExists[nextWillId] = true; // ✅ Mark will as existing
+        willExists[nextWillId] = true; 
 
         emit WillCreated(nextWillId, msg.sender, _beneficiary);
         nextWillId++;
@@ -105,7 +105,7 @@ contract WillCreation {
 
     /// @notice Get a specific will by ID
     function getWillById(uint _willId) public view returns (Will memory) {
-        require(willExists[_willId], "Will does not exist");  // ✅ Prevent zero address lookup
+        require(willExists[_willId], "Will does not exist");  
         address owner = willIdToOwner[_willId];
         Will[] memory userWills = willsByTestator[owner];
 
