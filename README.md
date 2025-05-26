@@ -1,32 +1,62 @@
 # IFB452-Group-33
-Digital Will DApp
+DIGITAL WILL DAPP
 
-This project is a decentralized application (DApp) that allows users to securely create, validate, and execute digital wills on the Ethereum blockchain. The system ensures that asset distribution follows predefined rules and includes a time-locked condition that prevents the release of assets to beneficiaries under the age of 18.
+A decentralized application (DApp) for secure digital will creation, verification, and execution using Ethereum smart contracts.
 
-Team Members and Contributions
+-------------------------------------------------------------------------------
 
-- Dharman – Front-End Development  
-  Dharman was responsible for designing and implementing the front-end interface using HTML, CSS, and JavaScript. This includes all UI forms, page navigation, and visual user interaction workflows.
+TABLE OF CONTENTS
 
-- Hassan – Integration and Time Logic  
-  Hassan worked on connecting the front-end with the smart contracts, focusing particularly on ensuring that time-based conditions like age verification were handled correctly. He also helped bridge the UI with the backend logic.
+1. Project Overview
+2. Team Members and Contributions
+3. Smart Contracts
+   - ValidateWill.sol
+   - ValidateAndExecuteWill.sol
+4. Front-End Features
+5. Usage Workflow
+6. Project Structure
+7. Technologies Used
+8. Security Notes
+9. License
 
-- Fayaaz – Back-End Development  
-  Fayaaz was in charge of designing and implementing the smart contracts in Solidity. He developed the logic for will verification and execution, including managing contract state and security checks.
+-------------------------------------------------------------------------------
 
-Smart Contracts
+PROJECT OVERVIEW
 
-1. ValidateWill.sol
+Digital Will DApp provides a blockchain-based solution to manage the creation, validation, and execution of digital wills. The system ensures that:
 
-This contract handles the validation of a will through the submission of a death certificate. Once submitted, the will is marked as verified and an event is emitted to log the verification.
+- Wills are immutable and stored securely
+- Verification of death is required before execution
+- Beneficiaries must meet a minimum age (18 years) for asset release
 
-Key Features:
-- isVerified: Tracks verification status of each will by ID.
-- verifiers: Keeps a record of addresses that submitted verification.
-- submitDeathCertificate: Accepts a hash of the death certificate and marks the will as verified.
-- getVerifiers: Returns the list of verifier addresses for a given will ID.
+-------------------------------------------------------------------------------
 
-Code Summary:
+TEAM MEMBERS AND CONTRIBUTIONS
+
+- Dharman – Front-End Developer
+  Built the entire user interface with HTML, CSS, and JavaScript. Created all user interaction pages including forms and flows.
+
+- Hassan – Full Stack Integrator
+  Connected the front-end with smart contracts and implemented the time-based (age verification) logic. Supported UI-to-chain interaction.
+
+- Fayaaz – Back-End Developer
+  Developed Solidity smart contracts including validation, execution, and event logging mechanisms.
+
+-------------------------------------------------------------------------------
+
+SMART CONTRACTS
+
+1. VALIDATEWILL.SOL
+
+Handles verification of a will by allowing a verifier to submit a hash of the death certificate.
+
+Features:
+- isVerified: Tracks if the will has been verified.
+- verifiers: Stores verifier addresses for each will.
+- submitDeathCertificate: Marks a will as verified and emits an event.
+- getVerifiers: Returns list of verifiers for a given will ID.
+
+Example Function:
 
 function submitDeathCertificate(uint256 willId, string memory deathCertHash) public {
     require(!isVerified[willId], "Already verified");
@@ -35,16 +65,16 @@ function submitDeathCertificate(uint256 willId, string memory deathCertHash) pub
     emit DeathVerified(willId, msg.sender, deathCertHash);
 }
 
-2. ValidateAndExecuteWill.sol
+2. VALIDATEANDEXECUTEWILL.SOL
 
-This contract connects to a WillCreation contract and enables execution of the will only after the death has been verified and certain conditions (like age) are met.
+Handles conditional execution of wills after verification.
 
-Key Features:
-- submitDeathCertificate: Similar to the validation step but used in coordination with another contract interface.
-- executeWill: Executes the will by confirming the will is valid, verified, and not already executed.
-- executed: Tracks whether each will has already been executed.
+Features:
+- submitDeathCertificate: Validates death status of testator.
+- executeWill: Executes will if all checks pass.
+- executed: Tracks if a will has already been executed.
 
-Code Summary:
+Example Function:
 
 function executeWill(uint willId) external {
     IWillCreation.Will memory will = willContract.getWillById(willId);
@@ -57,25 +87,30 @@ function executeWill(uint willId) external {
     emit WillExecuted(willId, will.beneficiary);
 }
 
-Front-End Features
+-------------------------------------------------------------------------------
 
-The front-end was developed in HTML, CSS, and JavaScript. Styling is handled using a modern, responsive CSS layout.
+FRONT-END FEATURES
 
-Key Pages:
-- Create Will Page: Allows testators to input will information and designate beneficiaries.
-- Verify Age Page: Collects the beneficiary's birth year and a scanned image of the birth certificate. If the age is under 18, execution is blocked.
-- Execution Panel: Used by legal authorities or authorized verifiers to submit a death certificate to verify the will.
-- Navigation: Responsive navbar links to all key pages.
+Developed using HTML, CSS, and JavaScript with responsive styling.
 
-Usage Workflow
+Core Pages:
+- Create Will – Enter beneficiary and asset details
+- Verify Age – Checks if beneficiary is 18+, includes document upload
+- Execution Panel – Verifier uploads a death certificate
+- Navigation Bar – Links all modules in a user-friendly layout
 
-1. The testator accesses the Create Will page and submits will data to the smart contract.
-2. A verifier submits a death certificate hash to the ValidateWill contract.
-3. The beneficiary or an executor inputs the birth year and uploads a document for manual/automated age verification.
-4. If the will is verified and the beneficiary is 18 or older, the ValidateAndExecuteWill contract allows execution.
-5. The will is executed, and an event is emitted to confirm successful asset transfer.
+-------------------------------------------------------------------------------
 
-Project Structure
+USAGE WORKFLOW
+
+1. Testator creates a will via the UI.
+2. Authorized verifier submits a death certificate hash.
+3. Beneficiary’s age is verified (must be 18+).
+4. If all checks pass, the will is executed and a blockchain event is emitted.
+
+-------------------------------------------------------------------------------
+
+PROJECT STRUCTURE
 
 /contracts
   ├── ValidateWill.sol
@@ -90,25 +125,34 @@ Project Structure
 /style
   └── style.css
 
-/README.txt
+README.txt
 
-Technologies Used
+-------------------------------------------------------------------------------
 
-- Solidity (version ^0.8.20)
-- HTML5 / CSS3
-- JavaScript (for UI logic and condition handling)
-- IPFS-compatible hash storage (for document proofs, simulated)
-- Ethereum (smart contract execution via Remix)
+TECHNOLOGIES USED
 
-Security Notes
+- Solidity (version ^0.8.20) – Smart contract language
+- HTML5 / CSS3 – Web layout and styling
+- JavaScript – Front-end logic and validation
+- IPFS-compatible hash storage (simulated)
+- Ethereum – Blockchain platform for smart contracts
 
-- Smart contracts ensure that:
-  - Wills cannot be verified more than once.
-  - Execution is only allowed after death verification and if the will is not revoked.
-  - Each will can only be executed one time.
-- The current implementation simulates file verification. In a production environment, integration with IPFS and cryptographic hashing should be used.
-- Future enhancements could include using Chainlink oracles for date-based logic or integrating biometric verification.
+-------------------------------------------------------------------------------
 
-License
+SECURITY NOTES
 
-This project is open source and licensed under the MIT License. You are free to use, modify, and distribute this software with appropriate credit to the contributors.
+- Will execution is only allowed if:
+  - The will is not revoked
+  - Death has been verified
+  - The will has not already been executed
+
+- Smart contracts prevent duplicate execution or verification.
+- In a production version, verification should include IPFS and document integrity checking.
+
+-------------------------------------------------------------------------------
+
+LICENSE
+
+This project is open source and licensed under the MIT License.
+You are free to use, modify, and distribute this software with appropriate credit to the contributors.
+
