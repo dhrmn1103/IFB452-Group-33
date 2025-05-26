@@ -70,13 +70,14 @@ The platform aims to solve legal challenges around inheritance, fairness, and as
 
 ## 🔒 Smart Contracts
 
-### ValidateWill.sol
-
+### willcreation.sol
+- stores all information including assets allocation
+- Allows the testator to create the will with all details
 - Stores verification status of wills
 - Allows submission of death certificate hashes
 - Emits `DeathVerified` events
 
-### ValidateAndExecuteWill.sol
+### ExecuteWill.sol
 
 - Interfaces with a WillContract
 - Submits death certificates and marks wills verified
@@ -98,9 +99,10 @@ The platform aims to solve legal challenges around inheritance, fairness, and as
 
 1. Testator creates a will and defines a beneficiary.
 2. Verifier uploads a death certificate (hash).
-3. Beneficiary enters birth year and uploads ID.
-4. If verified and aged 18+, assets can be released.
-5. Smart contract logs the execution on-chain.
+3. Smart contract logs the execution on-chain.
+4. Beneficiary enters birth year and uploads ID.
+5. If verified and aged 18+, assets can be released.
+
 
 ---
 
@@ -110,7 +112,7 @@ The platform aims to solve legal challenges around inheritance, fairness, and as
 |----------|-----------------------|---------------------------------------------------------|
 | Dharman  | Front-End Developer   | UI, form flows, frontend interactions                   |
 | Hassan   | Full Stack Developer  | Integrated UI with backend, age logic, document upload  |
-| Fayaaz   | Smart Contract Dev    | Created, tested, and deployed backend Solidity contracts|
+| Fayaaz   | Back-End Developer    | Created, tested, and deployed backend Solidity contracts|
 
 ---
 
@@ -118,14 +120,16 @@ The platform aims to solve legal challenges around inheritance, fairness, and as
 
 ```
 /contracts
-  ├── ValidateWill.sol
-  └── ValidateAndExecuteWill.sol
+  ├── willcreation.sol
+  └── ExecuteWill.sol
 
 /frontend
   ├── index.html
   ├── create-will.html
-  ├── verify-age.html
+  ├── verify-inheritence.html
+  ├── My-wills.html
   └── execution-panel.html
+    
 
 /style
   └── style.css
